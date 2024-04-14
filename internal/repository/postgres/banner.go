@@ -46,24 +46,27 @@ func (r *bannerRepo) InsertBanner(banner domain.Banner) (int64, error) {
 	return bannerID, nil
 }
 
-func (r *bannerRepo) GetBanners(tagIDs []int, featureID int, limit int, offset int) ([]domain.Banner, error) {
+func (r *bannerRepo) GetBanners(tagIDs []int64, featureID int64, limit int64, offset int64) ([]domain.Banner, error) {
 	const op = "repository.postgres.GetBanners"
 
-	const selectBannersByFeatureAndTagsQuery = `SELECT 
-		banner_id, 
-		feature, 
-		tags, 
-		is_active, 
-		banner_info, 
-		created_at, 
-		updated_at 
+	const selectBannersByFeatureAndTagsQuery = `
+	SELECT 
+		b.banner_id, 
+		b.feature, 
+		b.tags, 
+		b.is_active, 
+		bv.banner_info, 
+		bv.created_at, 
+		bv.updated_at 
 	FROM 
-		banner 
-	JOIN banner_version 
+		banners as b
+	JOIN banner_version as bv
 	ON 
-		banner.banner_id = banner_version.banner_id 
+		b.banner_id = bv.banner_id 
 	WHERE 
-		banner.feature = $1 AND tags @> $2 
+		b.feature = $1 AND tags @> $2
+	ORDER BY
+		b.banner_id, bv.created_at, bv.updated_at
 	LIMIT $3 OFFSET $4`
 
 	rows, err := r.db.Query(ctx, selectBannersByFeatureAndTagsQuery, featureID, tagIDs, limit, offset)
@@ -85,4 +88,6 @@ func (r *bannerRepo) GetBanners(tagIDs []int, featureID int, limit int, offset i
 	return banners, nil
 }
 
-// func (r *bannerRepo) GetBannerByID(bannerID int64)
+// func (r *bannerRepo) GetBannerByID(bannerID int64) ([]domain.Banner, error) {
+
+// }

@@ -33,3 +33,9 @@ func (b *Banner) Validate() error {
 
 	return nil
 }
+
+type BannerFilter struct {
+	TagIds        []int64
+	FeatureID     int64
+	Limit, Offset int64
+}
