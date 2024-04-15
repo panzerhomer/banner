@@ -32,6 +32,9 @@ func Routes(bannerHandler *bannerHandler) chi.Router {
 	root.Mount("/api", r)
 	r.Post("/banner", bannerHandler.CreateBanner)
 	r.Get("/banner", bannerHandler.GetBannersWithFilter)
+	r.Get("/user-banner", bannerHandler.GetUserBanner)
+	r.Put("/banner", nil)
+	r.Delete("/banner", nil)
 
 	return root
 }

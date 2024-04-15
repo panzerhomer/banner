@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/panzerhomer/banner/internal/config"
 	"github.com/panzerhomer/banner/internal/handlers"
+	"github.com/panzerhomer/banner/internal/redis.go"
 	repository "github.com/panzerhomer/banner/internal/repository/postgres"
 	"github.com/panzerhomer/banner/internal/services"
 )
@@ -40,8 +41,13 @@ func main() {
 
 	log.Println("database connected")
 
+	redis, err := redis.New(cfg)
+	if err != nil {
+		log.Fatalf("unable to connect to redis: %v\n", err)
+	}
+
 	bannerRepo := repository.NewBannerRepo(conn)
-	bannerService := services.NewBannerService(bannerRepo)
+	bannerService := services.NewBannerService(bannerRepo, redis)
 	bannerHandler := handlers.NewBannerHandler(bannerService)
 	routes := handlers.Routes(bannerHandler)
 

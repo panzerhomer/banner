@@ -88,6 +88,48 @@ func (r *bannerRepo) GetBanners(tagIDs []int64, featureID int64, limit int64, of
 	return banners, nil
 }
 
-// func (r *bannerRepo) GetBannerByID(bannerID int64) ([]domain.Banner, error) {
+func (r *bannerRepo) GetBanner(tagIDs []int64, featureID int64, IsAdmin bool) ([]domain.Banner, error) {
+	const op = "repository.postgres.GetBannerByFeatureIDandTagsId"
 
-// }
+	selectBanner := `
+	SELECT 
+		b.banner_id, 
+		b.feature, 
+		b.tags, 
+		b.is_active, 
+		bv.banner_info, 
+		bv.created_at, 
+		bv.updated_at 
+	FROM 
+		banners as b
+	JOIN banner_version as bv
+	ON 
+		b.banner_id = bv.banner_id 
+	WHERE
+		b.feature = $1 AND tags = $2`
+
+	if !IsAdmin {
+		selectBanner += " AND b.is_active IS NOT FALSE"
+	}
+
+	selectBanner += " ORDER BY b.banner_id, bv.created_at"
+
+	rows, err := r.db.Query(ctx, selectBanner, featureID, tagIDs)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var banners []domain.Banner
+	for rows.Next() {
+		var b domain.Banner
+		err := rows.Scan(&b.BannerID, &b.FeatureID, &b.TagIds, &b.IsActive, &b.Content, &b.CreatedAt, &b.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		banners = append(banners, b)
+	}
+
+	return banners, nil
+
+}
