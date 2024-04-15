@@ -21,9 +21,9 @@ services:
       # - postgres
     # env_file:
     #   - .env
-  # app:
-  #   build: ./
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "8080:8080"
+  app:
+    build: ./
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"

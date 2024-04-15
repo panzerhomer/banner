@@ -34,30 +34,3 @@ AFTER INSERT ON banner_version
 FOR EACH ROW
 EXECUTE FUNCTION maintain_banner_version_rows();
 
-
--- SELECT banners.banner_id, banner_version
-  
-  
--- INSERT INTO banners(feature, tags, is_active) VALUES (1, ARRAY[0], true);
-  
--- INSERT INTO banner_version(banner_id, created_at, banner_info) VALUES (2, '2024-04-04', '{"a":"b"}');
--- INSERT INTO banner_version(banner_id, created_at, banner_info) VALUES (2, '2024-04-05', '{"a":"b1"}');
--- INSERT INTO banner_version(banner_id, created_at, banner_info) VALUES (2, '2024-04-06', '{"a":"b2"}');
-  
--- SELECT * from banners;
--- select * from banner_version;
-    
--- CREATE FUNCTION create_banner() RETURNS int AS '
---     INSERT INTO banners(feature, tag, is_active) VALUES (2, ARRAY[1], true)  RETURNING banner_id;
--- ' LANGUAGE SQL;  
-
--- INSERT INTO banner_version(banner_id, created_at, banner_info) VALUES (create_banner(), '2024-04-06', '{"a":"b2"}')
-
- 
--- DELETE FROM banner_version 
--- where id = (SELECT id 
---             FROM banner_version 
---             WHERE banner_id = 5 AND created_at = (
---             SELECT MIN(created_at) FROM banner_version WHERE banner_id = 5 GROUP BY banner_id HAVING COUNT(*) = 3))
--- SELECT feature, tags FROM banner WHERE 
-

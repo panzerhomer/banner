@@ -12,6 +12,8 @@ type BannerRepository interface {
 	InsertBanner(banner domain.Banner) (int64, error)
 	GetBanners(tagIDs []int64, featureID int64, limit int64, offset int64) ([]domain.Banner, error)
 	GetBanner(tagIDs []int64, featureID int64, IsAdmin bool) ([]domain.Banner, error)
+	UpdateBannerById(banner domain.Banner) error
+	DeleteBannerById(bannerID int64) error
 }
 
 type bannerService struct {
@@ -69,4 +71,20 @@ func (s *bannerService) GetBanner(ctx context.Context, tagIDs []int64, featureID
 	log.Println("got banner from database")
 
 	return banner, nil
+}
+
+func (s *bannerService) UpdateBanner(ctx context.Context, banner domain.Banner) error {
+	if err := s.repo.UpdateBannerById(banner); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *bannerService) DeleteBanner(ctx context.Context, bannerID int64) error {
+	if err := s.repo.DeleteBannerById(bannerID); err != nil {
+		return err
+	}
+
+	return nil
 }

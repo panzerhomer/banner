@@ -131,5 +131,69 @@ func (r *bannerRepo) GetBanner(tagIDs []int64, featureID int64, IsAdmin bool) ([
 	}
 
 	return banners, nil
+}
 
+func (r *bannerRepo) UpdateBannerById(banner domain.Banner) error {
+	const op = "repository.postgres.UpdateBannerById"
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer tx.Rollback(ctx)
+
+	const queryBanner = `
+		UPDATE 
+			banners
+			SET 
+				feature = $1,
+				tags = $2,
+				is_active = $3
+			WHERE 
+				banner_id = $4`
+
+	_, err = r.db.Exec(ctx, queryBanner, banner.FeatureID, banner.TagIds, banner.IsActive, banner.BannerID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	const queryBannerVersion = `
+		UPDATE 
+			banner_version
+			SET
+				banner_info = $1,
+				updated_at = NOW()
+			WHERE
+				id = (SELECT id
+					FROM banner_version
+					WHERE banner_id = $2
+					GROUP BY id
+					ORDER BY max(updated_at) DESC
+					LIMIT 1)
+	`
+	_, err = r.db.Exec(ctx, queryBannerVersion, banner.Content, banner.BannerID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (r *bannerRepo) DeleteBannerById(bannerID int64) error {
+	const op = "repository.postgres.DeleteBannerById"
+
+	const query = `
+		DELETE FROM banners
+		WHERE banners.banner_id = $1
+	`
+	_, err := r.db.Exec(ctx, query, bannerID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

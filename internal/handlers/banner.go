@@ -23,6 +23,8 @@ type BannerService interface {
 	CreateBanner(ctx context.Context, banner domain.Banner) (int64, error)
 	GetBanners(ctx context.Context, banner domain.BannerFilter) ([]domain.Banner, error)
 	GetBanner(ctx context.Context, tagIDs []int64, featureID int64, lastVersion bool, isAdmin bool) ([]domain.Banner, error)
+	UpdateBanner(ctx context.Context, banner domain.Banner) error
+	DeleteBanner(ctx context.Context, bannerID int64) error
 }
 
 type bannerHandler struct {
@@ -117,7 +119,9 @@ func (h *bannerHandler) GetBannersWithFilter(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	render.JSON(w, r, banners)
+	if banners != nil {
+		render.JSON(w, r, banners)
+	}
 }
 
 func (h *bannerHandler) GetUserBanner(w http.ResponseWriter, r *http.Request) {
@@ -168,9 +172,72 @@ func (h *bannerHandler) GetUserBanner(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	render.JSON(w, r, banners)
+	if banners != nil {
+		render.JSON(w, r, banners)
+	}
 }
 
 func strToBool(s string) bool {
 	return strings.ToLower(s) == "true"
+}
+
+func (h *bannerHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
+	token, ok := r.Context().Value("token").(string)
+	if token == "" && !ok {
+		utils.ResponseJSON(w, utils.Error, ErrUserNotAuthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if token != AdminToken {
+		utils.ResponseJSON(w, utils.Error, ErrUserNotAllowed.Error(), http.StatusForbidden)
+		return
+	}
+
+	var banner domain.Banner
+	if err := json.NewDecoder(r.Body).Decode(&banner); err != nil {
+		utils.ResponseJSON(w, utils.Error, ErrBannerIncorrectData.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := banner.Validate(); err != nil {
+		utils.ResponseJSON(w, utils.Error, ErrBannerIncorrectData.Error(), http.StatusBadRequest)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	bannerParamId := queryParams.Get("id")
+
+	bannerId, _ := strconv.Atoi(bannerParamId)
+	banner.BannerID = int64(bannerId)
+
+	if err := h.servo.UpdateBanner(ctx, banner); err != nil {
+		utils.ResponseJSON(w, utils.Error, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	utils.ResponseJSON(w, "message", "ok", http.StatusOK)
+}
+
+func (h *bannerHandler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
+	token, ok := r.Context().Value("token").(string)
+	if token == "" && !ok {
+		utils.ResponseJSON(w, utils.Error, ErrUserNotAuthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if token != AdminToken {
+		utils.ResponseJSON(w, utils.Error, ErrUserNotAllowed.Error(), http.StatusForbidden)
+		return
+	}
+
+	queryParams := r.URL.Query()
+	bannerParamId := queryParams.Get("id")
+	bannerId, _ := strconv.Atoi(bannerParamId)
+
+	if err := h.servo.DeleteBanner(ctx, int64(bannerId)); err != nil {
+		utils.ResponseJSON(w, utils.Error, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	utils.ResponseJSON(w, "", "", http.StatusNoContent)
 }
