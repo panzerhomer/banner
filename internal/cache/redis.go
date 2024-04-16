@@ -1,4 +1,4 @@
-package redis
+package cache
 
 import (
 	"context"
@@ -28,12 +28,16 @@ func New(cfg *config.Config) (*Redis, error) {
 		DB:       0,
 	})
 
-	pong, err := client.Ping(context.Background()).Result()
+	ping, err := client.Ping(context.Background()).Result()
 	if err != nil {
-		log.Fatal("redis not send PONG ("+pong+"), err: ", err)
+		log.Println("redis not send PING ("+ping+"), err: ", err)
 	}
 
 	return &Redis{client: client}, nil
+}
+
+func (r *Redis) Disconnect() {
+	r.client.Close()
 }
 
 func (r *Redis) SaveBanner(bannerID int64, banner domain.Banner) error {

@@ -60,7 +60,7 @@ func (h *bannerHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 
 	bannerID, err := h.servo.CreateBanner(ctx, banner)
 	if err != nil {
-		utils.ResponseJSON(w, utils.Error, ErrBannerExists.Error(), http.StatusInternalServerError)
+		utils.ResponseJSON(w, utils.Error, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

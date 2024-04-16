@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/panzerhomer/banner/internal/cache"
 	"github.com/panzerhomer/banner/internal/domain"
-	"github.com/panzerhomer/banner/internal/redis.go"
 )
 
 type BannerRepository interface {
@@ -18,10 +18,10 @@ type BannerRepository interface {
 
 type bannerService struct {
 	repo  BannerRepository
-	redis *redis.Redis
+	redis *cache.Redis
 }
 
-func NewBannerService(repo BannerRepository, redis *redis.Redis) *bannerService {
+func NewBannerService(repo BannerRepository, redis *cache.Redis) *bannerService {
 	return &bannerService{repo: repo, redis: redis}
 }
 
@@ -55,7 +55,8 @@ func (s *bannerService) GetBanner(ctx context.Context, tagIDs []int64, featureID
 	if !lastVersion {
 		banner, err := s.redis.GetBanner(tagIDs, featureID)
 		if err != nil {
-			return nil, err
+			// return nil, err
+			log.Println("no cache: ", err)
 		}
 		if banner != nil {
 			log.Println("got banner from redis cache")

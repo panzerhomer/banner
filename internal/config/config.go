@@ -22,10 +22,10 @@ type Config struct {
 	} `yaml:"redis"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfig(path string) (*Config, error) {
 	cfg := &Config{}
 
-	err := cleanenv.ReadConfig("config.yaml", cfg)
+	err := cleanenv.ReadConfig(path, cfg)
 	if err != nil {
 		return nil, err
 	}

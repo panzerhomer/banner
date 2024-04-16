@@ -11,27 +11,45 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	cache "github.com/panzerhomer/banner/internal/cache/redis.go"
 	"github.com/panzerhomer/banner/internal/config"
 	"github.com/panzerhomer/banner/internal/handlers"
-	"github.com/panzerhomer/banner/internal/redis.go"
 	repository "github.com/panzerhomer/banner/internal/repository/postgres"
 	"github.com/panzerhomer/banner/internal/services"
 )
 
 var ctx = context.Background()
 
+const configPath = "./configs/config.yml"
+
 func main() {
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatal("loading config failed")
+		log.Fatal("loading config failed: ", err)
 	}
 
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password, cfg.Database.Name)
 
-	conn, err := pgx.Connect(ctx, dsn)
-	if err != nil {
-		log.Fatalf("unable to connect to database: %v\n", err)
+	log.Println("[init dsn]", dsn, "\n", cfg.Server)
+
+	var conn *pgx.Conn
+
+	maxAttempts := 10
+	attempt := 1
+
+	for {
+		conn, err = pgx.Connect(ctx, dsn)
+		if err != nil {
+			log.Printf("attempt %d: unable to connect to database: %v\n", attempt, err)
+			if attempt == maxAttempts {
+				log.Fatalf("max attempts reached, unable to connect to database: %v\n", err)
+			}
+			attempt++
+			time.Sleep(2 * time.Second)
+		} else {
+			break
+		}
 	}
 	defer conn.Close(ctx)
 
@@ -41,10 +59,26 @@ func main() {
 
 	log.Println("database connected")
 
-	redis, err := redis.New(cfg)
-	if err != nil {
-		log.Fatalf("unable to connect to redis: %v\n", err)
+	var redis *cache.Redis
+
+	attempt = 1
+
+	for {
+		redis, err = cache.New(cfg)
+		if err != nil {
+			log.Printf("attempt %d: unable to connect to redis: %v\n", attempt, err)
+			if attempt == maxAttempts {
+				log.Fatalf("max attempts reached, unable to connect to redis: %v\n", err)
+			}
+			attempt++
+			time.Sleep(2 * time.Second)
+		} else {
+			break
+		}
 	}
+	defer redis.Disconnect()
+
+	log.Println("redis connected")
 
 	bannerRepo := repository.NewBannerRepo(conn)
 	bannerService := services.NewBannerService(bannerRepo, redis)
